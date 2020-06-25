@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react';
 import ReactDOM from 'react-dom'
 
 const Part = (props) => {
@@ -26,7 +26,8 @@ const Content = (props) => {
  return elts 
 }
 
-const App = () => {
+const App = (props) => {
+
   const course = {
     name: 'Half Stack application development',
     parts: [
@@ -51,8 +52,11 @@ const App = () => {
       <Header course={course.name}/>
       <Content parts={course.parts} /> 
       <Total parts={course.parts}/>
-      </div>
+    </div>
   )
 }
 
+
+
 ReactDOM.render(<App />, document.getElementById('root'))
+
