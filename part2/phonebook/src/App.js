@@ -1,9 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect  } from 'react'
+import axios from 'axios'
 
 
-
-const Filter = ({searchTerm, searchFunc, persons}) => <>
- filter shown with <input type='text' value={searchTerm} onChange={(event) => searchFunc(event.target.value, persons)} />
+const Filter = ({searchTerm, setSearchTerm}) => <>
+ filter shown with <input type='text' value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
  </>
 const Persons = ({persons}) => persons.map( (person) => <p key={person.name}>{person.name} {person.number}</p> )
 
@@ -22,27 +22,34 @@ const PersonForm = ({formProcess, newName, newNumber, setNewName, setNewNumber})
 </>
 
 const App = () => {
-  const [persons, setPersons] = useState([
-    { name: 'Arto Hellas', number: '040-123456' },
-    { name: 'Ada Lovelace', number: '39-44-5323523' },
-    { name: 'Dan Abramov', number: '12-43-234345' },
-    { name: 'Mary Poppendieck', number: '39-23-6423122' }
-  ])
+  const [persons, setPersons] = useState([])
+  const [ searchTerm, setSearchTerm] = useState('');
   const [ newName, setNewName ] = useState('');
   const [ newNumber, setNewNumber ] = useState('');
   const [ personsSearch, setPersonsSearch] = useState(persons);
-  const [ searchTerm, setSearchTerm] = useState('');
 
-  const formSearch = (searchTerm, list) => {
-    setSearchTerm(searchTerm);
+  const formSearch = () => {
     if(searchTerm)
       setPersonsSearch(
-        list.filter(person => 
+        persons.filter(person => 
           person.name.toLowerCase().includes(searchTerm.toLowerCase())));
     else
-      setPersonsSearch(persons);
-  }
+        setPersonsSearch(persons);
+    }
+  
 
+  useEffect(() => {
+    axios
+      .get('http://localhost:3001/persons')
+      .then(response => {
+        setPersons(response.data);
+      });
+
+      
+  },[]);
+
+  /* Moniters `persons` variable */
+  useEffect(formSearch, [persons, searchTerm]);
   const isAdded = (name) => persons.map((person) => person.name.toLowerCase()).indexOf(name.toLowerCase()) !== -1
 
   const formProcess= (event) => {
@@ -53,13 +60,12 @@ const App = () => {
     setPersons(newPersons);
     setNewName('');
     setNewNumber('');
-    formSearch(searchTerm, newPersons);
   }
 
   return (
     <div>
       <h2>Phonebook</h2>
-      <Filter searchTerm={searchTerm} searchFunc={formSearch} persons={persons}></Filter>
+      <Filter searchTerm={searchTerm} setSearchTerm={setSearchTerm}></Filter>
       <h3>add a new</h3>
       <PersonForm
             setNewName = {setNewName}
