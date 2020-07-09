@@ -1,11 +1,18 @@
 import React, { useState, useEffect  } from 'react'
-import axios from 'axios'
+import reqs from './restful'
 
 
 const Filter = ({searchTerm, setSearchTerm}) => <>
  filter shown with <input type='text' value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} />
  </>
-const Persons = ({persons}) => persons.map( (person) => <p key={person.name}>{person.name} {person.number}</p> )
+
+const Persons = ({persons, deletePerson}) => persons.map( 
+      (person, index) => 
+        <div key={person.name}>
+          <span>{person.name} {person.number}</span>
+          <button style={{"display":"inline-block"}}
+          onClick={() => window.confirm(`Delete ${person.name} ?`) ? deletePerson(person.id) : null}>Delete</button>
+        </div> )
 
 const PersonForm = ({formProcess, newName, newNumber, setNewName, setNewNumber}) => <>
       <form onSubmit={ (event)=>formProcess(event) }>
@@ -27,6 +34,9 @@ const App = () => {
   const [ newName, setNewName ] = useState('');
   const [ newNumber, setNewNumber ] = useState('');
   const [ personsSearch, setPersonsSearch] = useState(persons);
+  const deletePerson = (index) => 
+                                  reqs.remove('persons', index)
+                                  .then(() => setPersons(persons.filter(person => person.id !== index)));
 
   const formSearch = () => {
     if(searchTerm)
@@ -39,10 +49,10 @@ const App = () => {
   
 
   useEffect(() => {
-    axios
-      .get('http://localhost:3001/persons')
+    reqs
+    .get('persons')
       .then(response => {
-        setPersons(response.data);
+        setPersons(response);
       });
 
       
@@ -50,14 +60,29 @@ const App = () => {
 
   /* Moniters `persons` variable */
   useEffect(formSearch, [persons, searchTerm]);
-  const isAdded = (name) => persons.map((person) => person.name.toLowerCase()).indexOf(name.toLowerCase()) !== -1
-
+  const getPerson = () => persons.filter(person => person.name.toLowerCase() === newName.trim().toLowerCase());
   const formProcess= (event) => {
     event.preventDefault();
-    if(isAdded(newName))
-      return alert(`${newName} is already added to phonebook`);
-    let newPersons = persons.concat({name: newName, number: newNumber});
-    setPersons(newPersons);
+    const existsPerson =  getPerson();
+    if(newName.trim().length === 0)
+    {
+      alert('The name is required');
+      return;
+    }
+    if(existsPerson.length >= 1){
+      const newPerson = {...existsPerson[0]};
+      if (window.confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)) {
+        newPerson['number'] = newNumber;
+        reqs.put('persons', newPerson.id, newPerson);
+      } 
+      
+      setPersons(persons.map(person => person.id === newPerson.id ? newPerson : person));
+    } else {
+      const newPerson = {name: newName.trim(), number: newNumber.trim()}
+      reqs.post('persons', newPerson).then(res => setPersons(persons.concat(res)));
+    }
+
+    
     setNewName('');
     setNewNumber('');
   }
@@ -75,7 +100,7 @@ const App = () => {
             newNumber = {newNumber}
       ></PersonForm>
       <h3>Numbers</h3>
-      <Persons persons={personsSearch}></Persons>
+      <Persons persons={personsSearch} deletePerson={deletePerson}></Persons>
     </div>
   )
 }
