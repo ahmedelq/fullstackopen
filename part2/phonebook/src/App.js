@@ -27,17 +27,41 @@ const PersonForm = ({formProcess, newName, newNumber, setNewName, setNewNumber})
         </div>
       </form>
 </>
-
+const Notification = ({message, isWarning}) => {
+  if (message.length === 0)
+    return null;
+   
+   let msgStyle = {
+    border : "1px solid green",
+    borderRadius: "5px",
+    color: "green",
+    fontSize: "18px",
+    backgroundColor: "#eee",
+    padding: "10px"
+  }
+  if(isWarning){
+   msgStyle = {...msgStyle, color:"red", border:"1px solid red"} 
+  }
+  return <div style={msgStyle}>
+    <span>{message}</span>
+  </div>
+}
 const App = () => {
   const [persons, setPersons] = useState([])
   const [ searchTerm, setSearchTerm] = useState('');
   const [ newName, setNewName ] = useState('');
   const [ newNumber, setNewNumber ] = useState('');
   const [ personsSearch, setPersonsSearch] = useState(persons);
+  const [ message, setMessage] = useState('');
+  const [isWarning, setIsWarning] = useState(false);
   const deletePerson = (index) => 
                                   reqs.remove('persons', index)
-                                  .then(() => setPersons(persons.filter(person => person.id !== index)));
-
+                                  .then(() => setPersons(persons.filter(person => person.id !== index)))
+                                  .catch(() => {
+                                      setPersons(persons.filter(person => person.id !== index));
+                                      setMessage('This person was already removed from the server.')
+                                      setIsWarning(true);
+                                  });
   const formSearch = () => {
     if(searchTerm)
       setPersonsSearch(
@@ -66,7 +90,8 @@ const App = () => {
     const existsPerson =  getPerson();
     if(newName.trim().length === 0)
     {
-      alert('The name is required');
+      setMessage('Please enter a valid name');
+      setIsWarning(true);
       return;
     }
     if(existsPerson.length >= 1){
@@ -80,6 +105,8 @@ const App = () => {
     } else {
       const newPerson = {name: newName.trim(), number: newNumber.trim()}
       reqs.post('persons', newPerson).then(res => setPersons(persons.concat(res)));
+      setMessage(`${newPerson.name} has been added.`);
+      setIsWarning(false);
     }
 
     
@@ -90,6 +117,7 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={message} isWarning={isWarning}></Notification>
       <Filter searchTerm={searchTerm} setSearchTerm={setSearchTerm}></Filter>
       <h3>add a new</h3>
       <PersonForm
